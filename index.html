@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Система Посещаемости | Юрфак</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <script src="script.js?v=1.1"></script>
+</head>
+<body>
+
+    <header class="top-bar">
+        <div class="burger-btn" id="burger-menu">
+            <span></span>
+            <span></span>
+            <span></span>
+        </div>
+        <div class="logo">Юридический Факультет</div>
+    </header>
+
+    <nav class="sidebar" id="sidebar">
+        <ul>
+            <li><a href="#" class="nav-link" data-target="home">Главная</a></li>
+            <li><a href="#" class="nav-link" data-target="grades">Журнал</a></li>
+            <li><a href="#" class="nav-link" data-target="profile">Личный кабинет</a></li>
+            <li style="border-top: 1px solid #444; margin-top: 10px;">
+                <a href="#" class="nav-link" data-target="admin" style="color: #ffca28;">⚙️ Настройки (Админ)</a>
+            </li>
+        </ul>
+    </nav>
+
+    <main class="content">
+        <section id="home" class="tab-content active">
+            <div class="hero">
+                <h1>Юридическое право</h1>
+                <p>Система электронного учета посещаемости лекций и семинаров.</p>
+            </div>
+            <div class="card">
+                <img src="https://images.unsplash.com/photo-1589829545856-d10d557cf95f?auto=format&fit=crop&q=80&w=800" alt="Law" class="main-img">
+                <h2>О курсе</h2>
+                <p>Предмет ведет профессор юриспруденции. Основные темы: Конституционное право, Гражданский кодекс и Теория государства и права.</p>
+            </div>
+        </section>
+
+        <section id="grades" class="tab-content">
+            <div class="card">
+                <h2>Отметиться на занятии</h2>
+                <div id="auth-block"></div>
+            </div>
+
+            <div class="card">
+                <h3>Просмотр журнала</h3>
+                <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                    <select id="view-group-select" onchange="renderTable()" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc;"></select>
+                    <input type="date" id="view-date-select" onchange="renderTable()" style="flex: 1; padding: 10px; border-radius: 8px; border: 1px solid #ccc;">
+                </div>
+                
+                <div class="table-wrapper">
+                    <table id="attendance-table">
+                        <thead>
+                            <tr>
+                                <th>Студент</th>
+                                <th>Статус / Время</th>
+                            </tr>
+                        </thead>
+                        <tbody id="table-body"></tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+       <div id="admin-container"></div>
+
+        <section id="profile" class="tab-content">
+            <div class="card profile-card">
+                <div class="avatar-circle">⚖️</div>
+                <div id="profile-info"></div>
+            </div>
+        </section>
+    </main>
+</body>
+</html>

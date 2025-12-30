@@ -1,0 +1,239 @@
+/* Основные переменные стиля */
+:root {
+    --primary: #1a2a6c;
+    --gold: #b8860b;
+    --gold-bright: #ffd700;
+    --dark: #121212;
+    --glass: rgba(255, 255, 255, 0.08);
+    --transition: all 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Roboto', sans-serif;
+    background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+    color: #f5f5f5;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Исправление кнопки бургера */
+.burger-btn {
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 6px;
+    width: 40px; /* Явно задаем ширину */
+    height: 40px; /* Явно задаем высоту */
+    z-index: 1001;
+    padding: 5px;
+}
+
+.burger-btn span {
+    display: block;
+    width: 100%;
+    height: 2px;
+    background-color: var(--gold); /* Убедись, что переменная --gold видна */
+    transition: var(--transition);
+    border-radius: 2px;
+}
+
+/* Чтобы бургер не прилипал к краю */
+.top-bar {
+    padding: 0 20px;
+}
+
+h1, h2, h3, .logo {
+    font-family: 'Playfair Display', serif;
+    letter-spacing: 1px;
+}
+
+/* Верхняя панель */
+.top-bar {
+    background: rgba(15, 32, 39, 0.85);
+    backdrop-filter: blur(15px);
+    height: 70px;
+    display: flex;
+    align-items: center;
+    padding: 0 25px;
+    position: fixed;
+    top: 0; width: 100%;
+    z-index: 1000;
+    border-bottom: 1px solid rgba(184, 134, 11, 0.2);
+    justify-content: space-between;
+}
+
+.logo {
+    font-size: 1.4rem;
+    color: var(--gold);
+    text-shadow: 0 0 10px rgba(184, 134, 11, 0.3);
+}
+
+/* Сайдбар */
+.sidebar {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    width: 280px;
+    height: 100%;
+    background: rgba(10, 10, 10, 0.98);
+    backdrop-filter: blur(20px);
+    padding-top: 100px;
+    transition: var(--transition);
+    z-index: 999;
+    box-shadow: 10px 0 30px rgba(0,0,0,0.5);
+}
+
+.sidebar.active { left: 0; }
+
+.nav-link {
+    display: block;
+    padding: 15px 30px;
+    color: #888;
+    text-decoration: none;
+    font-size: 1.1rem;
+    transition: var(--transition);
+}
+
+.nav-link:hover {
+    color: var(--gold);
+    background: rgba(184, 134, 11, 0.1);
+    padding-left: 40px;
+}
+
+/* Карточки */
+.content {
+    margin-top: 90px;
+    padding: 20px;
+    max-width: 900px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.card {
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 30px;
+    margin-bottom: 30px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.3);
+    animation: slideUp 0.8s ease forwards;
+}
+
+@keyframes slideUp {
+    from { opacity: 0; transform: translateY(30px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Поля ввода и кнопки */
+input, select, textarea {
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    padding: 12px;
+    color: #fff;
+    width: 100%;
+    margin-bottom: 15px;
+    transition: var(--transition);
+}
+
+input:focus, select:focus {
+    border-color: var(--gold);
+    box-shadow: 0 0 15px rgba(184, 134, 11, 0.2);
+}
+
+button {
+    background: linear-gradient(45deg, #b8860b, #8b6508);
+    color: white;
+    border: none;
+    padding: 15px 25px;
+    border-radius: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: var(--transition);
+    text-transform: uppercase;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(184, 134, 11, 0.4);
+    filter: brightness(1.1);
+}
+
+/* === ПРАВКИ ДЛЯ АДМИНКИ === */
+
+/* Стили для меток дней (вместо скучных чекбоксов) */
+.day-label {
+    display: inline-flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 8px 15px;
+    border-radius: 8px;
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    transition: 0.3s;
+    font-size: 0.9rem;
+    color: #ccc;
+}
+
+.day-label:has(input:checked) {
+    background: rgba(184, 134, 11, 0.2);
+    border-color: var(--gold);
+    color: var(--gold-bright);
+}
+
+.day-check {
+    margin-right: 8px;
+    width: auto;
+    margin-bottom: 0;
+}
+
+/* Заголовки внутри админки */
+#admin h2, #admin h3 {
+    color: var(--gold);
+    margin-bottom: 15px;
+}
+
+#admin label {
+    display: block;
+    margin-bottom: 8px;
+    color: #aaa;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+}
+
+/* Таблицы */
+.table-wrapper {
+    overflow-x: auto;
+    border-radius: 15px;
+    background: rgba(0,0,0,0.2);
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th {
+    background: rgba(184, 134, 11, 0.15);
+    color: var(--gold);
+    padding: 15px;
+    text-align: left;
+}
+
+td {
+    padding: 15px;
+    border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+/* Скрытые секции */
+.tab-content { display: none; }
+.tab-content.active { display: block; }
