@@ -10,17 +10,16 @@ const firebaseConfig = {
     measurementId: "G-VM3HFN2LNL"
 };
 
-// Инициализация
+// Инициализация Firebase
 try {
     firebase.initializeApp(firebaseConfig);
     var db = firebase.database();
 } catch (e) {
-    console.error("Firebase не подключен!");
+    console.error("Firebase не подключен!", e);
 }
 
-const TARGET_COORDS = { lat: 42.83761, lon: 74.59635 }; 
+const TARGET_COORDS = { lat: 42.8349, lon: 74.5520 };
 const MAX_DIST = 500; 
-
 const _0x_ap = "Lalka5467"; 
 
 let GROUPS_DATA = {}; 
@@ -28,6 +27,7 @@ let SCHEDULE_DATA = {};
 let currentUser = localStorage.getItem('user_id');
 let currentGroup = localStorage.getItem('user_group');
 
+// Вспомогательная функция для даты
 function getFormattedDate(dateObj = new Date()) {
     const d = String(dateObj.getDate()).padStart(2, '0');
     const m = String(dateObj.getMonth() + 1).padStart(2, '0');
@@ -35,135 +35,59 @@ function getFormattedDate(dateObj = new Date()) {
     return `${d}_${m}_${y}`;
 }
 
+// Запуск при загрузке страницы
 document.addEventListener('DOMContentLoaded', () => {
     setupNavigation();
+    
     const dateInput = document.getElementById('view-date-select');
     if (dateInput) {
         const now = new Date();
         dateInput.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
     }
+    
     renderAuthBlock();
     loadCloudData();
 });
 
+// --- НАВИГАЦИЯ (LUMA STYLE) ---
 function setupNavigation() {
-    const burger = document.getElementById('burger-menu');
-    const sidebar = document.getElementById('sidebar');
-    if (burger) burger.onclick = () => sidebar.classList.toggle('active');
-
     document.querySelectorAll('.nav-link').forEach(link => {
         link.onclick = (e) => {
             e.preventDefault();
             const targetId = link.getAttribute('data-target');
-            
+
+            // Защита админки
             if (targetId === 'admin') {
                 const p = prompt("Ключ доступа:");
                 if (p !== _0x_ap) return alert("Доступ ограничен");
                 renderAdminPanel(); 
             }
 
-            document.querySelectorAll('.tab-content').forEach(s => s.classList.remove('active'));
+            // Если выбран профиль — обновляем информацию в нем
+            if (targetId === 'profile') {
+                renderProfileInfo();
+            }
+
+            // Переключение вкладок
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
             const targetElement = document.getElementById(targetId);
-            if(targetElement) targetElement.classList.add('active');
-            if (sidebar) sidebar.classList.remove('active');
+            if (targetElement) {
+                targetElement.classList.add('active');
+            }
+
+            // Подсветка иконок в меню
+            document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+            link.classList.add('active');
+
+            window.scrollTo(0, 0);
         };
     });
 }
 
-// ФУНКЦИЯ БЛОКИРОВКИ ЗАНЯТЫХ ДНЕЙ
-function lockUsedDays() {
-    const group = document.getElementById('schedule-group-select')?.value;
-    const checkboxes = document.querySelectorAll('.day-check');
-    const labels = document.querySelectorAll('.day-label');
-    
-    // Сброс состояния
-    checkboxes.forEach(cb => {
-        cb.disabled = false;
-        cb.checked = false;
-    });
-    labels.forEach(l => {
-        l.style.opacity = "1";
-        l.style.pointerEvents = "auto";
-        l.style.textDecoration = "none";
-    });
-
-    if (!group || !SCHEDULE_DATA[group]) return;
-
-    // Собираем все дни, которые уже есть в расписании для этой группы
-    let takenDays = [];
-    SCHEDULE_DATA[group].forEach(rule => {
-        if (Array.isArray(rule.days)) {
-            takenDays = takenDays.concat(rule.days.map(String));
-        } else {
-            takenDays.push(String(rule.days));
-        }
-    });
-
-    // Блокируем занятые
-    checkboxes.forEach((cb, index) => {
-        if (takenDays.includes(String(cb.value))) {
-            cb.disabled = true;
-            labels[index].style.opacity = "0.3";
-            labels[index].style.pointerEvents = "none";
-            labels[index].style.textDecoration = "line-through";
-        }
-    });
-}
-
-function renderAdminPanel() {
-    const container = document.getElementById('admin-container');
-    if (!container) return;
-
-    container.innerHTML = `
-        <section id="admin" class="tab-content active">
-            <div class="card">
-                <h2>📅 Расписание занятий</h2>
-                <div id="schedule-setup" style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 15px; margin-bottom: 25px; border: 1px solid rgba(184, 134, 11, 0.3);">
-                    <label style="color:var(--gold); display:block; margin-bottom:5px;">Группа:</label>
-                    <select id="schedule-group-select" onchange="lockUsedDays()" style="width: 100%; margin-bottom: 15px;"></select>
-                    
-                    <label style="color:var(--gold); display:block; margin-bottom:5px;">Дни недели (занятые дни зачеркнуты):</label>
-                    <div id="days-container" style="display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 15px;">
-                        <label class="day-label"><input type="checkbox" class="day-check" value="1"> Пн</label>
-                        <label class="day-label"><input type="checkbox" class="day-check" value="2"> Вт</label>
-                        <label class="day-label"><input type="checkbox" class="day-check" value="3"> Ср</label>
-                        <label class="day-label"><input type="checkbox" class="day-check" value="4"> Чт</label>
-                        <label class="day-label"><input type="checkbox" class="day-check" value="5"> Пт</label>
-                        <label class="day-label"><input type="checkbox" class="day-check" value="6"> Сб</label>
-                    </div>
-                    
-                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
-                        <div style="flex:1">
-                            <label style="font-size:0.8rem">Начало:</label>
-                            <input type="time" id="sched-start" value="09:00">
-                        </div>
-                        <div style="flex:1">
-                            <label style="font-size:0.8rem">Конец:</label>
-                            <input type="time" id="sched-end" value="10:30">
-                        </div>
-                    </div>
-                    <button onclick="addScheduleRule()" style="width: 100%;">Добавить окно в базу</button>
-                </div>
-                <div id="current-schedule-list"></div>
-                <hr style="margin: 30px 0; border: 0; border-top: 1px solid rgba(255,255,255,0.1);">
-                <h2>👥 Состав групп</h2>
-                <textarea id="raw-data-input" style="width: 100%; height: 200px; background:#000; color:#27ae60; font-family: monospace;"></textarea>
-                <button onclick="saveGroupsOnly()" style="margin-top: 15px; width: 100%; background: #27ae60;">💾 Сохранить студентов</button>
-            </div>
-        </section>
-    `;
-    
-    initGroupSelectors();
-    renderScheduleList();
-    
-    const adminInput = document.getElementById('raw-data-input');
-    if (adminInput && Object.keys(GROUPS_DATA).length > 0) {
-        let text = "";
-        for (let g in GROUPS_DATA) text += `# ${g}\n${GROUPS_DATA[g].join('\n')}\n\n`;
-        adminInput.value = text.trim();
-    }
-}
-
+// --- РАБОТА С ДАННЫМИ ---
 function loadCloudData() {
     if (!db) return;
     db.ref('groups_config').on('value', (snapshot) => {
@@ -176,7 +100,7 @@ function loadCloudData() {
         SCHEDULE_DATA = snapshot.val() || {};
         if (document.getElementById('admin')) {
             renderScheduleList();
-            lockUsedDays(); // Перепроверяем блокировку при обновлении данных
+            lockUsedDays();
         }
     });
 }
@@ -192,58 +116,16 @@ function initGroupSelectors() {
     if (currentGroup && viewSelect) viewSelect.value = currentGroup;
 }
 
-function addScheduleRule() {
-    const group = document.getElementById('schedule-group-select').value;
-    const start = document.getElementById('sched-start').value;
-    const end = document.getElementById('sched-end').value;
-    const days = Array.from(document.querySelectorAll('.day-check:checked')).map(c => c.value);
-
-    if (!group || days.length === 0) return alert("Заполните группу и выберите дни!");
-
-    if (!SCHEDULE_DATA[group]) SCHEDULE_DATA[group] = [];
-    SCHEDULE_DATA[group].push({ days, start, end });
-
-    db.ref('schedule_config').set(SCHEDULE_DATA).then(() => {
-        alert("Расписание обновлено!");
-        lockUsedDays(); // Сбрасываем и блокируем заново
-        renderScheduleList();
-    }).catch(e => alert("Ошибка сохранения: " + e.message));
-}
-
-function renderScheduleList() {
-    const list = document.getElementById('current-schedule-list');
-    if (!list) return;
-    list.innerHTML = "<h3 style='color:var(--gold); font-size:1.1rem;'>Текущие правила:</h3>";
-    
-    const dayNames = { "1":"Пн", "2":"Вт", "3":"Ср", "4":"Чт", "5":"Пт", "6":"Сб", "7":"Вс" };
-
-    for (let group in SCHEDULE_DATA) {
-        SCHEDULE_DATA[group].forEach((rule, index) => {
-            const daysTxt = rule.days.map(d => dayNames[d] || d).join(', ');
-            list.innerHTML += `
-                <div style="background: rgba(255,255,255,0.05); margin: 8px 0; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); display: flex; justify-content: space-between; align-items: center;">
-                    <span><b>${group}</b>: ${daysTxt} <br><small>${rule.start} - ${rule.end}</small></span>
-                    <button onclick="deleteRule('${group}', ${index})" style="background:#e74c3c; padding: 5px 10px; height:auto; min-width:auto; border:none; border-radius:5px; color:white;">Удалить</button>
-                </div>`;
-        });
-    }
-}
-
-function deleteRule(group, index) {
-    if(!confirm("Удалить это правило?")) return;
-    SCHEDULE_DATA[group].splice(index, 1);
-    if (SCHEDULE_DATA[group].length === 0) delete SCHEDULE_DATA[group];
-    db.ref('schedule_config').set(SCHEDULE_DATA).then(() => {
-        lockUsedDays();
-    });
-}
-
+// --- ГЕОЛОКАЦИЯ ---
 function checkLocation() {
     const status = document.getElementById('gps-status');
+    if (!currentGroup) return alert("Сначала привяжите профиль в Журнале или Профиле");
+    
     const now = new Date();
-    const currentDay = now.getDay() === 0 ? 7 : now.getDay();
+    let currentDay = now.getDay();
+    if (currentDay === 0) currentDay = 7; 
+    
     const currentMin = now.getHours() * 60 + now.getMinutes();
-
     const myGroupRules = SCHEDULE_DATA[currentGroup] || [];
     let isTimeOk = false;
 
@@ -252,29 +134,100 @@ function checkLocation() {
         const [eH, eM] = rule.end.split(':').map(Number);
         const startMin = sH * 60 + sM;
         const endMin = eH * 60 + eM;
-        if (rule.days.includes(String(currentDay)) && currentMin >= startMin && currentMin <= endMin) isTimeOk = true;
+        const ruleDays = rule.days.map(Number);
+
+        if (ruleDays.includes(currentDay) && currentMin >= startMin && currentMin <= endMin) {
+            isTimeOk = true;
+        }
     });
 
     if (!isTimeOk) {
-        status.innerHTML = `<span style="color:orange">⌛ По расписанию у группы ${currentGroup} сейчас нет занятий.</span>`;
+        status.innerHTML = `<span style="color:orange">⌛ Нет занятий по расписанию.</span>`;
         return;
     }
 
-    status.innerText = "Сверка GPS...";
+    status.innerHTML = "🛰️ <span>Связь со спутниками...</span>";
+
+    const geoOptions = { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 };
+
     navigator.geolocation.getCurrentPosition((pos) => {
         const dist = getDistance(pos.coords.latitude, pos.coords.longitude, TARGET_COORDS.lat, TARGET_COORDS.lon);
+        
         if (dist <= MAX_DIST) {
             const dateKey = getFormattedDate();
             db.ref(`attendance/${dateKey}/${currentUser}`).set({ 
                 time: new Date().toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' }) 
             }).then(() => {
-                status.innerHTML = "<span style='color:green'>✅ Успешно!</span>";
+                status.innerHTML = "<span style='color:#27ae60'>✅ Успешно отмечен!</span>";
                 renderTable();
+                if(document.getElementById('profile').classList.contains('active')) renderProfileInfo();
             });
         } else {
-            status.innerHTML = `❌ Вы слишком далеко (${Math.round(dist)}м)`;
+            status.innerHTML = `<span style="color:#e74c3c">❌ Слишком далеко: ${Math.round(dist)}м</span>`;
         }
-    }, (err) => alert("Включите геолокацию!"), { enableHighAccuracy: true });
+    }, (err) => {
+        status.innerHTML = `<span style="color:red">⚠️ Ошибка GPS: ${err.message}</span>`;
+    }, geoOptions);
+}
+
+// --- РЕНДЕРИНГ КОМПОНЕНТОВ ---
+
+// НОВАЯ ФУНКЦИЯ ПРОФИЛЯ
+function renderProfileInfo() {
+    const container = document.getElementById('profile-info');
+    if (!container) return;
+
+    if (!currentUser) {
+        container.innerHTML = `
+            <div style="text-align:center; padding: 20px;">
+                <p style="color:var(--text-dim); margin-bottom:20px;">Профиль не настроен</p>
+                <button onclick="document.querySelector('[data-target=\\'grades\\']').click()">Перейти к настройке</button>
+            </div>
+        `;
+        return;
+    }
+
+    // Считаем общее количество посещений в базе для этого юзера
+    db.ref('attendance').once('value', (snapshot) => {
+        const data = snapshot.val() || {};
+        let visitCount = 0;
+        Object.keys(data).forEach(date => {
+            if (data[date][currentUser]) visitCount++;
+        });
+
+        container.innerHTML = `
+            <div class="profile-header" style="text-align:center; margin-bottom:30px;">
+                <h2 style="margin-bottom:5px; font-size: 1.8rem;">${currentUser}</h2>
+                <p style="color:var(--gold); font-size:0.75rem; letter-spacing:2px; text-transform:uppercase;">Студент Юридического Факультета</p>
+            </div>
+
+            <div class="stats-grid" style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-bottom:30px;">
+                <div class="card" style="margin-bottom:0; text-align:center; padding:20px; background: rgba(255,255,255,0.03);">
+                    <span style="display:block; font-size:1.4rem; font-weight:700; color:var(--accent);">${currentGroup}</span>
+                    <span style="font-size:0.65rem; color:var(--text-dim); letter-spacing:1px;">ГРУППА</span>
+                </div>
+                <div class="card" style="margin-bottom:0; text-align:center; padding:20px; background: rgba(255,255,255,0.03);">
+                    <span style="display:block; font-size:1.4rem; font-weight:700; color:#27ae60;">${visitCount}</span>
+                    <span style="font-size:0.65rem; color:var(--text-dim); letter-spacing:1px;">ВИЗИТОВ</span>
+                </div>
+            </div>
+
+            <div class="info-list" style="background: rgba(255,255,255,0.02); border-radius: 12px; padding: 10px 20px;">
+                <div style="display:flex; justify-content:space-between; padding:15px 0; border-bottom:1px solid var(--border);">
+                    <span style="color:var(--text-dim); font-size:0.9rem;">Статус допуска</span>
+                    <span style="color:#27ae60; font-size:0.9rem; font-weight:600;">Подтвержден</span>
+                </div>
+                <div style="display:flex; justify-content:space-between; padding:15px 0;">
+                    <span style="color:var(--text-dim); font-size:0.9rem;">Системный ID</span>
+                    <span style="font-family:monospace; font-size:0.9rem;">#${currentUser.charCodeAt(0)}${currentUser.length}</span>
+                </div>
+            </div>
+
+            <button onclick="logout()" style="margin-top:40px; background:rgba(255, 68, 68, 0.1); color:#ff4444; border:1px solid rgba(255, 68, 68, 0.2); height: 50px; font-size: 14px;">
+                ВЫЙТИ ИЗ СИСТЕМЫ
+            </button>
+        `;
+    });
 }
 
 function renderTable() {
@@ -309,21 +262,23 @@ function renderAuthBlock() {
     if (!container) return;
     if (!currentUser) {
         container.innerHTML = `
-            <select id="setup-group" onchange="updateStudentList()" style="width:100%; padding:10px;">
-                <option value="">-- Группа --</option>
+            <select id="setup-group" onchange="updateStudentList()" style="margin-bottom:10px;">
+                <option value="">-- Выберите группу --</option>
                 ${Object.keys(GROUPS_DATA).map(g => `<option value="${g}">${g}</option>`).join('')}
             </select>
-            <select id="setup-student" disabled style="width:100%; padding:10px; margin-top:10px;">
-                <option value="">-- Имя --</option>
+            <select id="setup-student" disabled style="margin-bottom:15px;">
+                <option value="">-- Сначала выберите группу --</option>
             </select>
-            <button onclick="saveUser()" style="margin-top:15px; width:100%;">Привязать устройство</button>
+            <button onclick="saveUser()">Привязать это устройство</button>
+            <p style="font-size:11px; color:var(--text-dim); margin-top:10px; text-align:center;">Привязка необходима для автоматического учета посещаемости.</p>
         `;
     } else {
         container.innerHTML = `
-            <p>Студент: <b>${currentUser}</b></p>
-            <button onclick="checkLocation()" style="width:100%; padding:15px; background:linear-gradient(45deg, #b8860b, #8b6508); color:white; border-radius:8px; border:none; font-weight:bold;">ОТМЕТИТЬСЯ</button>
-            <p id="gps-status" style="margin-top:10px; text-align:center; font-weight:bold;"></p>
-            <button onclick="logout()" style="background:none; border:none; color:#666; font-size:10px; cursor:pointer; margin-top:10px;">Сбросить профиль</button>
+            <div style="text-align:center; padding: 10px 0;">
+                <p style="margin-bottom:20px; font-size: 1.1rem;">Студент: <b>${currentUser}</b></p>
+                <button onclick="checkLocation()" style="box-shadow: 0 4px 15px rgba(255,255,255,0.1);">ОТМЕТИТЬСЯ НА ЗАНЯТИИ</button>
+                <p id="gps-status" style="margin-top:20px; min-height: 24px; font-size: 0.9rem;"></p>
+            </div>
         `;
     }
 }
@@ -346,14 +301,98 @@ function saveUser() {
         localStorage.setItem('user_id', s);
         localStorage.setItem('user_group', g);
         location.reload();
+    } else {
+        alert("Выберите группу и имя!");
     }
 }
 
-function logout() { localStorage.clear(); location.reload(); }
+function logout() { 
+    if(confirm("Вы уверены, что хотите сбросить профиль?")) {
+        localStorage.clear(); 
+        location.reload(); 
+    }
+}
+
+// --- АДМИН-ПАНЕЛЬ ---
+function renderAdminPanel() {
+    const container = document.getElementById('admin-container');
+    if (!container) return;
+
+    container.innerHTML = `
+        <section id="admin" class="tab-content">
+            <div class="card">
+                <h2>Настройка расписания</h2>
+                <select id="schedule-group-select" onchange="lockUsedDays()"></select>
+                <div id="days-container" style="display:flex; gap:8px; flex-wrap:wrap; margin:15px 0;">
+                    ${[1,2,3,4,5,6].map(d => `<label class="day-label" style="background:rgba(255,255,255,0.05); padding:8px 12px; border-radius:8px; cursor:pointer;"><input type="checkbox" class="day-check" value="${d}"> ${['Пн','Вт','Ср','Чт','Пт','Сб'][d-1]}</label>`).join('')}
+                </div>
+                <div style="display:flex; gap:10px; margin-bottom:15px;">
+                    <div style="flex:1"><small>Начало</small><input type="time" id="sched-start" value="09:00"></div>
+                    <div style="flex:1"><small>Конец</small><input type="time" id="sched-end" value="10:30"></div>
+                </div>
+                <button onclick="addScheduleRule()">Добавить правило</button>
+                <div id="current-schedule-list" style="margin-top:20px;"></div>
+                <hr style="border:0; border-top:1px solid var(--border); margin:25px 0;">
+                <h2>Редактор групп</h2>
+                <textarea id="raw-data-input" style="height:150px; font-family:monospace; font-size:12px;" placeholder="# Группа\\nИмя1\\nИмя2"></textarea>
+                <button onclick="saveGroupsOnly()" style="background:var(--gold); color:#000;">Сохранить список групп</button>
+            </div>
+        </section>
+    `;
+    
+    initGroupSelectors();
+    renderScheduleList();
+    
+    const adminInput = document.getElementById('raw-data-input');
+    if (adminInput && Object.keys(GROUPS_DATA).length > 0) {
+        let text = "";
+        for (let g in GROUPS_DATA) text += `# ${g}\n${GROUPS_DATA[g].join('\n')}\n\n`;
+        adminInput.value = text.trim();
+    }
+}
+
+function addScheduleRule() {
+    const group = document.getElementById('schedule-group-select').value;
+    const start = document.getElementById('sched-start').value;
+    const end = document.getElementById('sched-end').value;
+    const days = Array.from(document.querySelectorAll('.day-check:checked')).map(c => c.value);
+
+    if (!group || days.length === 0) return alert("Выберите группу и дни!");
+
+    if (!SCHEDULE_DATA[group]) SCHEDULE_DATA[group] = [];
+    SCHEDULE_DATA[group].push({ days, start, end });
+
+    db.ref('schedule_config').set(SCHEDULE_DATA).then(() => {
+        alert("Правило добавлено");
+        renderScheduleList();
+    });
+}
+
+function renderScheduleList() {
+    const list = document.getElementById('current-schedule-list');
+    if (!list) return;
+    list.innerHTML = "<h4>Текущие правила:</h4>";
+    for (let group in SCHEDULE_DATA) {
+        SCHEDULE_DATA[group].forEach((rule, index) => {
+            list.innerHTML += `<div style="font-size:12px; border:1px solid var(--border); padding:12px; margin-top:8px; border-radius:10px; display:flex; justify-content:space-between; align-items:center;">
+                <div>
+                    <b>${group}</b>: ${rule.days.map(d => ['','Пн','Вт','Ср','Чт','Пт','Сб','Вс'][d]).join(', ')}<br>
+                    <span style="color:var(--text-dim)">${rule.start} — ${rule.end}</span>
+                </div>
+                <button onclick="deleteRule('${group}', ${index})" style="width:auto; height:30px; padding:0 10px; background:#ff4444; color:white; font-size:10px;">Удалить</button>
+            </div>`;
+        });
+    }
+}
+
+function deleteRule(group, index) {
+    SCHEDULE_DATA[group].splice(index, 1);
+    if (SCHEDULE_DATA[group].length === 0) delete SCHEDULE_DATA[group];
+    db.ref('schedule_config').set(SCHEDULE_DATA);
+}
 
 function saveGroupsOnly() {
-    const input = document.getElementById('raw-data-input')?.value;
-    if (!input) return;
+    const input = document.getElementById('raw-data-input').value;
     const newData = {};
     let activeG = "";
     input.split('\n').forEach(line => {
@@ -365,7 +404,7 @@ function saveGroupsOnly() {
             newData[activeG].push(line);
         }
     });
-    db.ref('groups_config').set(newData).then(() => alert("Сохранено!"));
+    db.ref('groups_config').set(newData).then(() => alert("Список групп обновлен!"));
 }
 
 function getDistance(lat1, lon1, lat2, lon2) {
@@ -375,3 +414,5 @@ function getDistance(lat1, lon1, lat2, lon2) {
     const a = Math.sin(dLat/2)**2 + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)**2;
     return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
+
+function lockUsedDays() {} // Заглушка
